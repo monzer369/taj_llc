@@ -1,22 +1,29 @@
 import React from 'react';
-import { Phone, MessageCircle, MapPin, ShieldCheck, ChevronLeft } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { IMAGES, CONTACT_INFO, SERVICES } from '../data';
 import { PageId } from './Navbar';
+import { useLanguage } from '../context/LanguageContext';
+import { translations } from '../i18n/translations';
 
 interface FooterProps {
   onNavigate: (page: PageId) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const { lang, isRtl } = useLanguage();
+  const t = translations[lang];
+
+  const ForwardArrow = isRtl ? ChevronLeft : ChevronRight;
+
   return (
-    <footer className="bg-[#0B1120] border-t border-slate-800 text-slate-400 relative overflow-hidden">
+    <footer className="bg-[#070B12] border-t border-slate-800 text-slate-400 relative overflow-hidden">
       {/* Decorative gradient lines */}
       <div className="h-1 w-full bg-gradient-to-r from-[#2563EB] via-[#84CC16] to-[#2563EB]"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
           {/* Col 1: Brand & Bio (4 cols) */}
-          <div className="lg:col-span-4 space-y-4">
+          <div className="lg:col-span-4 space-y-4 text-start">
             <div className="flex items-center gap-2.5">
               <img
                 src={IMAGES.logo}
@@ -25,28 +32,28 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               />
               <div>
                 <h3 className="text-base font-black text-white tracking-wider">
-                  TAJ <span className="text-[#2563EB]">|</span> تاج
+                  TAJ <span className="text-[#2563EB]">{t.brandSeparator}</span> {isRtl ? 'تاج' : 'STEEL'}
                 </h3>
                 <p className="text-[11px] text-slate-400">
-                  للأعمال الحديدية والحلول الهندسية المخصصة
+                  {t.brandSubtitle}
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              شركة متخصصة في تصنيع وتنفيذ الأعمال الحديدية الدقيقة والحلول الإنشائية المخصصة للفلل والقصور والمشاريع السكنية الراقية في دولة الإمارات العربية المتحدة. دقة هندسية، خامات مجلفنة، وضمان حقيقي لمدة 10 سنوات.
+              {t.footerBio}
             </p>
 
             <div className="inline-flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300">
               <ShieldCheck className="w-4 h-4 text-[#84CC16] shrink-0" />
-              <span>ضمان إنشائي معتمد لمدة 10 سنوات على كافة الهياكل</span>
+              <span>{t.footerWarrantyPill}</span>
             </div>
           </div>
 
           {/* Col 2: Fast Navigation (2 cols) */}
-          <div className="lg:col-span-2 space-y-4">
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider border-r-2 border-[#2563EB] pr-3">
-              روابط الموقع
+          <div className="lg:col-span-2 space-y-4 text-start">
+            <h4 className={`text-sm font-bold text-white uppercase tracking-wider ${isRtl ? 'border-r-2 pr-3' : 'border-l-2 pl-3'} border-[#2563EB]`}>
+              {t.footerLinksHeading}
             </h4>
             <ul className="space-y-2.5 text-xs md:text-sm">
               <li>
@@ -54,8 +61,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   onClick={() => onNavigate('home')}
                   className="hover:text-white hover:text-[#84CC16] transition-colors flex items-center gap-1.5"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
-                  <span>الرئيسية</span>
+                  <ForwardArrow className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{t.navHome}</span>
                 </button>
               </li>
               <li>
@@ -63,8 +70,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   onClick={() => onNavigate('services')}
                   className="hover:text-white hover:text-[#84CC16] transition-colors flex items-center gap-1.5"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
-                  <span>الخدمات الهندسية</span>
+                  <ForwardArrow className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{t.navServices}</span>
                 </button>
               </li>
               <li>
@@ -72,8 +79,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   onClick={() => onNavigate('portfolio')}
                   className="hover:text-white hover:text-[#84CC16] transition-colors flex items-center gap-1.5"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
-                  <span>معرض الأعمال</span>
+                  <ForwardArrow className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{t.navPortfolio}</span>
                 </button>
               </li>
               <li>
@@ -81,8 +88,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   onClick={() => onNavigate('about')}
                   className="hover:text-white hover:text-[#84CC16] transition-colors flex items-center gap-1.5"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
-                  <span>من نحن</span>
+                  <ForwardArrow className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{t.navAbout}</span>
                 </button>
               </li>
               <li>
@@ -90,97 +97,92 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   onClick={() => onNavigate('contact')}
                   className="hover:text-white hover:text-[#84CC16] transition-colors flex items-center gap-1.5"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
-                  <span>تواصل معنا</span>
+                  <ForwardArrow className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{t.navContact}</span>
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Col 3: Key Services (3 cols) */}
-          <div className="lg:col-span-3 space-y-4">
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider border-r-2 border-[#84CC16] pr-3">
-              الخدمات المعتمدة
+          {/* Col 3: Services Links (3 cols) */}
+          <div className="lg:col-span-3 space-y-4 text-start">
+            <h4 className={`text-sm font-bold text-white uppercase tracking-wider ${isRtl ? 'border-r-2 pr-3' : 'border-l-2 pl-3'} border-[#84CC16]`}>
+              {t.footerServicesHeading}
             </h4>
-            <ul className="space-y-2 text-xs text-slate-300">
-              {SERVICES.map((s) => (
-                <li key={s.id} className="truncate">
+            <ul className="space-y-2 text-xs">
+              {SERVICES.slice(0, 5).map((serv) => (
+                <li key={serv.id}>
                   <button
                     onClick={() => onNavigate('services')}
-                    className="hover:text-white transition-colors text-right truncate block max-w-full"
+                    className="hover:text-white transition-colors flex items-center gap-1.5 truncate max-w-full text-slate-300"
                   >
-                    • {s.title}
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#84CC16] shrink-0"></span>
+                    <span className="truncate">{lang === 'en' ? serv.title_en : serv.title}</span>
                   </button>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Col 4: Contact & Social (3 cols) */}
-          <div className="lg:col-span-3 space-y-4">
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider border-r-2 border-[#2563EB] pr-3">
-              بيانات الاتصال والتواصل
+          {/* Col 4: Contact & Socials (3 cols) */}
+          <div className="lg:col-span-3 space-y-4 text-start">
+            <h4 className={`text-sm font-bold text-white uppercase tracking-wider ${isRtl ? 'border-r-2 pr-3' : 'border-l-2 pl-3'} border-[#2563EB]`}>
+              {t.footerContactHeading}
             </h4>
-            <div className="space-y-3 text-xs md:text-sm">
-              <div className="flex items-center gap-2.5 text-slate-300">
+
+            <div className="space-y-2.5 text-xs text-slate-300">
+              <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-[#2563EB] shrink-0" />
-                <span>{CONTACT_INFO.location}</span>
+                <span>{t.locationDubai}</span>
               </div>
 
-              <div className="flex items-center gap-2.5 text-slate-300">
-                <Phone className="w-4 h-4 text-[#2563EB] shrink-0" />
-                <a href={`tel:${CONTACT_INFO.phoneRaw}`} className="hover:text-white font-mono" dir="ltr">
+              <div className="flex items-center gap-2 font-mono">
+                <Phone className="w-4 h-4 text-[#84CC16] shrink-0" />
+                <a href={`tel:${CONTACT_INFO.phoneRaw}`} className="hover:text-white transition-colors" dir="ltr">
                   {CONTACT_INFO.phoneDisplay}
                 </a>
               </div>
 
-              <div className="flex items-center gap-2.5 text-slate-300">
+              <div className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-[#25D366] shrink-0" />
                 <a
-                  href={`https://wa.me/${CONTACT_INFO.whatsappRaw}`}
+                  href={`https://wa.me/${CONTACT_INFO.whatsappRaw}?text=${encodeURIComponent(lang === 'ar' ? 'مرحباً TAJ، أود الاستفسار عن تفاصيل المشاريع والأسعار.' : 'Hello TAJ, I would like to inquire about project details and pricing.')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white font-mono"
-                  dir="ltr"
+                  className="hover:text-white text-[#25D366] font-bold"
                 >
-                  WhatsApp: {CONTACT_INFO.phoneDisplay}
+                  {lang === 'ar' ? 'محادثة واتساب مباشرة' : 'Direct WhatsApp Chat'}
                 </a>
               </div>
             </div>
 
-            {/* Social channels */}
+            {/* Social links */}
             <div className="pt-2">
-              <span className="text-xs font-semibold text-slate-400 block mb-2">تابع منصاتنا الرسمية:</span>
-              <div className="flex items-center gap-3">
-                {/* Facebook */}
-                <a
-                  href={CONTACT_INFO.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-[#2563EB] text-slate-300 hover:text-white border border-slate-800 text-xs font-bold transition-all"
-                  aria-label="صفحة فيسبوك"
-                >
-                  Facebook
-                </a>
-
-                {/* Instagram */}
+              <span className="text-[11px] text-slate-400 block mb-2 font-semibold">
+                {lang === 'ar' ? 'تابعنا على المنصات:' : 'Follow Us:'}
+              </span>
+              <div className="flex items-center gap-2">
                 <a
                   href={CONTACT_INFO.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-pink-600 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold transition-all"
-                  aria-label="حساب إنستغرام"
+                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-[#84CC16] text-xs text-slate-300 hover:text-white transition-colors"
                 >
                   Instagram
                 </a>
-
-                {/* Snapchat */}
+                <a
+                  href={CONTACT_INFO.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-[#2563EB] text-xs text-slate-300 hover:text-white transition-colors"
+                >
+                  Facebook
+                </a>
                 <a
                   href={CONTACT_INFO.snapchat}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-yellow-400 hover:text-slate-900 text-slate-300 border border-slate-800 text-xs font-bold transition-all"
-                  aria-label="حساب سناب شات"
+                  className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-yellow-400 text-xs text-slate-300 hover:text-white transition-colors"
                 >
                   Snapchat
                 </a>
@@ -189,12 +191,15 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-12 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} شركة TAJ للأعمال الحديدية والحلول الهندسية. جميع الحقوق محفوظة.</p>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#84CC16]"></span>
-            <span>مصممة للمشاريع السكنية الراقية والفلل في الإمارات</span>
+        {/* Bottom copyright row */}
+        <div className="mt-8 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+          <div>
+            © {new Date().getFullYear()} {t.footerRights}
+          </div>
+          <div className="text-[11px] text-slate-400 flex items-center gap-2">
+            <span>UAE VIP Engineering Luxury</span>
+            <span>•</span>
+            <span>Dubai, Abu Dhabi, Sharjah, All Emirates</span>
           </div>
         </div>
       </div>

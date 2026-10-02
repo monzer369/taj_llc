@@ -7,20 +7,25 @@ import {
   Clock, 
   Sparkles, 
   CheckCircle2, 
-  ExternalLink,
   ChevronDown,
-  Database
+  Database,
+  X
 } from 'lucide-react';
-import { CONTACT_INFO, REQUEST_OPTIONS } from '../data';
+import { CONTACT_INFO } from '../data';
 import { SmartContactForm } from '../components/SmartContactForm';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { translations } from '../i18n/translations';
 
 interface ContactPageProps {
   initialRequestType?: string;
 }
 
 export const ContactPage: React.FC<ContactPageProps> = ({ initialRequestType }) => {
+  const { lang, isRtl } = useLanguage();
+  const t = translations[lang];
+
   const [showLogModal, setShowLogModal] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
@@ -40,8 +45,9 @@ export const ContactPage: React.FC<ContactPageProps> = ({ initialRequestType }) 
       setShowLogModal(true);
     } catch (err: any) {
       console.warn('Viewing logs restricted by Firestore rules (admin-only):', err);
-      // As defined in rules, read is restricted to admin, which is secure!
-      setLogError('الاطلاع على سجل الطلبات الكامل محمي بقواعد أمان Firebase المشفرة (Admin Protected). يتم حفظ كافة الطلبات بشكل آمن ومباشر.');
+      setLogError(lang === 'ar'
+        ? 'الاطلاع على سجل الطلبات الكامل محمي بقواعد أمان Firebase المشفرة (Admin Protected). يتم حفظ كافة الطلبات بشكل آمن ومباشر.'
+        : 'Accessing the full inquiries log is protected by Firebase security rules (Admin Protected). All requests are securely stored directly in Firestore.');
       setShowLogModal(true);
     } finally {
       setIsLoadingLogs(false);
@@ -54,13 +60,13 @@ export const ContactPage: React.FC<ContactPageProps> = ({ initialRequestType }) 
       <section className="max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-3">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2563EB]/15 border border-[#2563EB]/30 text-xs font-bold text-blue-400">
           <Sparkles className="w-3.5 h-3.5 text-[#84CC16]" />
-          <span>تواصل مباشر مع الفريق الهندسي</span>
+          <span>{t.contactBadge}</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-          تواصل معنا واستشر خبراء TAJ
+          {t.contactTitle}
         </h1>
         <p className="text-slate-400 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed">
-          يسعدنا استقبال استفساراتكم ومخططاتكم الهندسية لتنفيذ أرقى الأعمال الحديدية للفلل في كافة إمارات الدولة.
+          {t.contactDesc}
         </p>
       </section>
 
@@ -73,21 +79,21 @@ export const ContactPage: React.FC<ContactPageProps> = ({ initialRequestType }) 
           </div>
 
           {/* Contact Details & Info (5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
+          <div className={`lg:col-span-5 space-y-6 ${isRtl ? 'text-right' : 'text-left'}`}>
             {/* Phone & WhatsApp Card */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-[#0F172A] border border-slate-800 text-right space-y-6 shadow-xl">
+            <div className="p-6 sm:p-8 rounded-3xl bg-[#0B101D] border border-slate-800 space-y-6 shadow-xl">
               <div>
                 <h3 className="text-xl font-bold text-white mb-1">
-                  الاتصال الهاتفي والمحادثة المباشرة
+                  {lang === 'ar' ? 'الاتصال الهاتفي والمحادثة المباشرة' : 'Phone Call & Direct Chat'}
                 </h3>
                 <p className="text-xs text-slate-400">
-                  فريقنا الهندسي متواجد لخدمتكم والإجابة على أي استفسارات فنية.
+                  {lang === 'ar' ? 'فريقنا الهندسي متواجد لخدمتكم والإجابة على أي استفسارات فنية.' : 'Our engineering specialists are ready to review your architectural requirements.'}
                 </p>
               </div>
 
               {/* Direct WhatsApp Action */}
               <a
-                href={`https://wa.me/${CONTACT_INFO.whatsappRaw}?text=${encodeURIComponent('مرحباً TAJ، أود الاستفسار عن تفاصيل تنفيذ أعمال حديدية لمشروع فيلا.')}`}
+                href={`https://wa.me/${CONTACT_INFO.whatsappRaw}?text=${encodeURIComponent(lang === 'ar' ? 'مرحباً TAJ، أود الاستفسار عن تفاصيل تنفيذ أعمال حديدية لمشروع فيلا.' : 'Hello TAJ, I would like to inquire about custom metalwork execution for a villa.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-between p-4 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/30 hover:bg-[#25D366]/20 transition-all group"
@@ -97,14 +103,14 @@ export const ContactPage: React.FC<ContactPageProps> = ({ initialRequestType }) 
                     <MessageCircle className="w-6 h-6 fill-white" />
                   </div>
                   <div>
-                    <span className="block text-xs font-semibold text-slate-400">خدمة العملاء عبر واتساب</span>
+                    <span className="block text-xs font-semibold text-slate-400">{t.contactWhatsApp}</span>
                     <span className="block text-sm sm:text-base font-bold text-white font-mono" dir="ltr">
                       {CONTACT_INFO.phoneDisplay}
                     </span>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-[#25D366] group-hover:translate-x-[-4px] transition-transform">
-                  محادثة فورية ←
+                <span className="text-xs font-bold text-[#25D366] group-hover:scale-105 transition-transform">
+                  {lang === 'ar' ? 'محادثة فورية ←' : 'Chat Now →'}
                 </span>
               </a>
 
@@ -118,162 +124,110 @@ export const ContactPage: React.FC<ContactPageProps> = ({ initialRequestType }) 
                     <Phone className="w-6 h-6" />
                   </div>
                   <div>
-                    <span className="block text-xs font-semibold text-slate-400">الاتصال الهاتفي المباشر</span>
+                    <span className="block text-xs font-semibold text-slate-400">{t.contactPhone}</span>
                     <span className="block text-sm sm:text-base font-bold text-white font-mono" dir="ltr">
                       {CONTACT_INFO.phoneDisplay}
                     </span>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-blue-400 group-hover:translate-x-[-4px] transition-transform">
-                  اتصال الآن ←
+                <span className="text-xs font-bold text-blue-400 group-hover:scale-105 transition-transform">
+                  {lang === 'ar' ? 'اتصال الآن ←' : 'Call Now →'}
                 </span>
               </a>
 
               {/* Location Card */}
-              <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-900 border border-slate-800">
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-[#070B12] border border-slate-800">
                 <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 text-[#84CC16]">
                   <MapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="block text-xs font-semibold text-slate-400">الموقع الجغرافي</span>
+                  <span className="block text-xs font-semibold text-slate-400">{lang === 'ar' ? 'الموقع الجغرافي' : 'Headquarters'}</span>
                   <span className="block text-sm font-bold text-white">
-                    {CONTACT_INFO.location}
+                    {t.locationDubai}
+                  </span>
+                </div>
+              </div>
+
+              {/* Working Hours */}
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-[#070B12] border border-slate-800">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 text-[#2563EB]">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="block text-xs font-semibold text-slate-400">{lang === 'ar' ? 'أوقات العمل المعتمدة' : 'Business Hours'}</span>
+                  <span className="block text-xs sm:text-sm font-bold text-white">
+                    {t.contactHours}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Social Channels */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-[#0F172A] border border-slate-800 text-right space-y-4 shadow-xl">
-              <h3 className="text-lg font-bold text-white">
-                حساباتنا على وسائل التواصل الاجتماعي
-              </h3>
-              <p className="text-xs text-slate-400">
-                تابع أحدث الأعمال المنفذة ومقاطع الفيديو التوثيقية لمشاريع الفلل في الإمارات:
-              </p>
-
-              <div className="space-y-3 pt-2">
-                {/* Facebook */}
-                <a
-                  href={CONTACT_INFO.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 hover:bg-[#2563EB]/20 border border-slate-800 hover:border-[#2563EB]/50 transition-all text-sm font-bold text-slate-200"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                    فيسبوك | Facebook Official
-                  </span>
-                  <ExternalLink className="w-4 h-4 text-slate-500" />
-                </a>
-
-                {/* Instagram */}
-                <a
-                  href={CONTACT_INFO.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 hover:bg-pink-600/20 border border-slate-800 hover:border-pink-500/50 transition-all text-sm font-bold text-slate-200"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-pink-500"></span>
-                    إنستغرام | @taj__llc
-                  </span>
-                  <ExternalLink className="w-4 h-4 text-slate-500" />
-                </a>
-
-                {/* Snapchat */}
-                <a
-                  href={CONTACT_INFO.snapchat}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 hover:bg-yellow-400/20 border border-slate-800 hover:border-yellow-400/50 transition-all text-sm font-bold text-slate-200"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
-                    سناب شات | @tajsteel_llc
-                  </span>
-                  <ExternalLink className="w-4 h-4 text-slate-500" />
-                </a>
+            {/* Warranty reminder */}
+            <div className="p-6 rounded-3xl bg-[#070B12] border border-slate-800 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#84CC16]/15 border border-[#84CC16]/30 flex items-center justify-center text-[#84CC16] shrink-0">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">{t.warrantyYearsText}</h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {lang === 'ar' ? 'عقد ضمان موثق يشمل السلامة الإنشائية ومقاومة التآكل.' : 'Official certified contract covering structural stability and rust resilience.'}
+                </p>
               </div>
             </div>
 
-            {/* Quick 10 Year guarantee reminder */}
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-[#0F172A] border border-[#2563EB]/30 flex items-center gap-4">
-              <ShieldCheck className="w-10 h-10 text-[#84CC16] shrink-0" />
-              <div className="text-right">
-                <span className="block text-sm font-bold text-white">ضمان 10 سنوات موثق في العقد</span>
-                <span className="block text-xs text-slate-400">على الهيكل الإنشائي واللحام ومقاومة الصدأ والحرارة</span>
-              </div>
-            </div>
-
-            {/* Discreet Database persistence status & inspector */}
-            <div className="pt-2 text-center">
+            {/* Admin Logs Button */}
+            <div className="text-center pt-2">
               <button
+                type="button"
                 onClick={fetchLogs}
                 disabled={isLoadingLogs}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-400 hover:text-slate-200 border border-slate-800 transition-all"
+                className="text-xs text-slate-500 hover:text-slate-300 flex items-center justify-center gap-1.5 mx-auto transition-colors"
               >
-                <Database className="w-3.5 h-3.5 text-[#84CC16]" />
-                <span>حالة قاعدة بيانات الطلبات (Cloud Firestore)</span>
+                <Database className="w-3.5 h-3.5" />
+                <span>{isLoadingLogs ? (lang === 'ar' ? 'جارٍ التحقق...' : 'Verifying...') : t.contactViewLogs}</span>
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Database Inspector Modal */}
+      {/* Admin Log Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0F172A] border border-slate-700 rounded-3xl p-6 max-w-lg w-full text-right space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className={`bg-[#0B101D] border border-slate-700 rounded-3xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto ${isRtl ? 'text-right' : 'text-left'}`}>
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-[#84CC16]" />
-                <h3 className="text-base font-bold text-white">
-                  سجل بيانات المستخدمين في Firebase
-                </h3>
-              </div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Database className="w-4 h-4 text-[#84CC16]" />
+                <span>{t.contactViewLogs}</span>
+              </h3>
               <button
                 onClick={() => setShowLogModal(false)}
-                className="text-slate-400 hover:text-white text-sm"
+                className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center"
               >
-                ✕ إغلاق
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-2">
-              <div className="flex items-center gap-2 text-slate-200 font-bold">
-                <CheckCircle2 className="w-4 h-4 text-[#84CC16]" />
-                <span>قاعدة البيانات متصلة وجاهزة لتسجيل الطلبات فورياً</span>
+            {logError ? (
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+                {logError}
               </div>
-              <p className="text-slate-400 text-[11px] leading-relaxed">
-                وفق متطلبات الأمان الصارمة، ترسل النماذج بياناتها إلى مجموعة <code className="text-[#84CC16] bg-slate-950 px-1 py-0.5 rounded font-mono">inquiries</code> مباشرة قبل التوجيه إلى واتساب.
-              </p>
-              {logError && (
-                <div className="p-2.5 rounded bg-blue-950/40 border border-blue-800 text-blue-300 text-[11px]">
-                  {logError}
-                </div>
-              )}
-              {logs.length > 0 && (
-                <div className="space-y-2 pt-2 max-h-48 overflow-y-auto">
-                  {logs.map((item, idx) => (
-                    <div key={idx} className="p-2 rounded bg-slate-950 border border-slate-800/80 text-[11px]">
-                      <div className="flex justify-between font-bold text-white">
-                        <span>{item.name} - {item.city}</span>
-                        <span className="text-[#84CC16]">{item.requestType}</span>
-                      </div>
-                      {item.details && <p className="text-slate-400 mt-1">{item.details}</p>}
+            ) : logs.length === 0 ? (
+              <p className="text-xs text-slate-400">{lang === 'ar' ? 'لا توجد طلبات مسجلة حالياً.' : 'No inquiries registered yet.'}</p>
+            ) : (
+              <div className="space-y-2">
+                {logs.map((item) => (
+                  <div key={item.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1">
+                    <div className="flex justify-between font-bold text-white">
+                      <span>{item.name}</span>
+                      <span className="text-[#84CC16]">{item.city}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setShowLogModal(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all"
-            >
-              تم
-            </button>
+                    <div className="text-slate-400">{item.requestType}</div>
+                    {item.details && <p className="text-slate-300 text-[11px] pt-1">{item.details}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

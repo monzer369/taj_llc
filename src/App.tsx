@@ -15,8 +15,10 @@ import { PortfolioPage } from './pages/PortfolioPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { ProjectWork, ServiceItem } from './data';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 
-export default function App() {
+function MainApp() {
+  const { isRtl } = useLanguage();
   const [currentPage, setCurrentPage] = useState<PageId>('home');
   const [preselectedRequest, setPreselectedRequest] = useState<string | undefined>(undefined);
   const [selectedProject, setSelectedProject] = useState<ProjectWork | null>(null);
@@ -57,7 +59,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col font-sans selection:bg-[#2563EB] selection:text-white relative">
+    <div 
+      dir={isRtl ? 'rtl' : 'ltr'} 
+      className="min-h-screen bg-[#070B12] text-slate-100 flex flex-col font-sans selection:bg-[#2563EB] selection:text-white relative transition-colors duration-200"
+    >
       {/* Top Navbar */}
       <Navbar
         currentPage={currentPage}
@@ -121,5 +126,13 @@ export default function App() {
       {/* Global Footer */}
       <Footer onNavigate={(page) => handleNavigate(page)} />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <MainApp />
+    </LanguageProvider>
   );
 }

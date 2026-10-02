@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronLeft, Images, Play, Pause, Maximize2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Maximize2 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { translations } from '../i18n/translations';
 
 interface AutoServiceImageSliderProps {
   images: string[];
@@ -21,6 +23,8 @@ export const AutoServiceImageSlider: React.FC<AutoServiceImageSliderProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const { lang, isRtl } = useLanguage();
+  const t = translations[lang];
 
   const totalImages = images.length;
   const currentImage = images[currentIndex] || images[0] || '';
@@ -43,7 +47,7 @@ export const AutoServiceImageSlider: React.FC<AutoServiceImageSliderProps> = ({
 
   // Handle user manual intervention
   const handleUserIntervention = (newIndex: number) => {
-    setIsAutoPlaying(false); // Switch to manual control
+    setIsAutoPlaying(false);
     setCurrentIndex(newIndex);
   };
 
@@ -88,7 +92,7 @@ export const AutoServiceImageSlider: React.FC<AutoServiceImageSliderProps> = ({
         <img
           key={currentImage}
           src={currentImage}
-          alt={`${serviceTitle} - صورة ${currentIndex + 1}`}
+          alt={`${serviceTitle} - ${currentIndex + 1}`}
           className="relative z-10 max-w-full max-h-full w-auto h-auto object-contain transition-all duration-500 group-hover:scale-[1.02]"
         />
 
@@ -105,18 +109,18 @@ export const AutoServiceImageSlider: React.FC<AutoServiceImageSliderProps> = ({
               <button
                 type="button"
                 onClick={handleToggleAutoPlay}
-                title={isAutoPlaying ? 'إيقاف التنقل التلقائي' : 'تشغيل التنقل التلقائي'}
+                title={isAutoPlaying ? (lang === 'ar' ? 'إيقاف التنقل التلقائي' : 'Pause autoplay') : (lang === 'ar' ? 'تشغيل التنقل التلقائي' : 'Resume autoplay')}
                 className="px-2 py-0.5 rounded-md bg-black/75 hover:bg-slate-800 text-slate-200 border border-white/10 text-[10px] flex items-center gap-1 backdrop-blur-md transition-colors"
               >
                 {isAutoPlaying ? (
                   <>
                     <span className="w-1.5 h-1.5 rounded-full bg-[#84CC16] animate-pulse"></span>
-                    <span>تلقائي</span>
+                    <span>{t.showcaseAuto}</span>
                   </>
                 ) : (
                   <>
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                    <span>يدوي</span>
+                    <span>{t.showcaseManual}</span>
                   </>
                 )}
               </button>
@@ -129,25 +133,25 @@ export const AutoServiceImageSlider: React.FC<AutoServiceImageSliderProps> = ({
           </div>
         </div>
 
-        {/* Navigation Arrows: ALWAYS VISIBLE, HIGH CONTRAST, HIGH Z-INDEX (z-30), NEVER HIDDEN */}
+        {/* Navigation Arrows: ALWAYS VISIBLE, HIGH CONTRAST, HIGH Z-INDEX (z-30) */}
         {totalImages > 1 && (
           <div className="absolute inset-y-0 inset-x-2 flex items-center justify-between z-30 pointer-events-none">
-            {/* Previous Button (Right side in RTL) */}
+            {/* Previous Button */}
             <button
               type="button"
-              onClick={handlePrev}
+              onClick={isRtl ? handlePrev : handleNext}
               className="pointer-events-auto w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-950/85 hover:bg-[#2563EB] active:scale-90 text-white flex items-center justify-center border border-white/20 shadow-2xl backdrop-blur-md transition-all duration-200 group-hover:scale-110"
-              aria-label="الصورة السابقة"
+              aria-label={lang === 'ar' ? 'السابق' : 'Previous'}
             >
               <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            {/* Next Button (Left side in RTL) */}
+            {/* Next Button */}
             <button
               type="button"
-              onClick={handleNext}
+              onClick={isRtl ? handleNext : handlePrev}
               className="pointer-events-auto w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-950/85 hover:bg-[#2563EB] active:scale-90 text-white flex items-center justify-center border border-white/20 shadow-2xl backdrop-blur-md transition-all duration-200 group-hover:scale-110"
-              aria-label="الصورة التالية"
+              aria-label={lang === 'ar' ? 'التالي' : 'Next'}
             >
               <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
@@ -158,21 +162,21 @@ export const AutoServiceImageSlider: React.FC<AutoServiceImageSliderProps> = ({
         <div className="absolute bottom-2.5 inset-x-2.5 px-3 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between z-20">
           <span className="flex items-center gap-1.5 truncate">
             <span className="w-1.5 h-1.5 rounded-full bg-[#84CC16]"></span>
-            <span className="truncate">انقر للتكبير وعرض كامل الألبوم</span>
+            <span className="truncate">{t.showcaseClickToExpand}</span>
           </span>
           <span className="inline-flex items-center gap-1 text-[#84CC16] font-bold shrink-0">
             <Maximize2 className="w-3.5 h-3.5" />
-            <span>عرض فوري</span>
+            <span>{t.showcaseQuickView}</span>
           </span>
         </div>
       </div>
 
-      {/* Thumbnails Row: ALWAYS AVAILABLE for direct click */}
+      {/* Thumbnails Row */}
       {showThumbnails && totalImages > 1 && (
         <div className="space-y-1">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <span>نماذج الموديلات ({totalImages} صور):</span>
-            <span className="text-[10px] text-slate-500 font-mono">انقر لأي صورة للتبديل</span>
+            <span>{t.showcaseModelsCount} ({totalImages}):</span>
+            <span className="text-[10px] text-slate-500 font-mono">{t.showcaseClickHint}</span>
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
             {images.map((imgUrl, idx) => (
@@ -189,7 +193,7 @@ export const AutoServiceImageSlider: React.FC<AutoServiceImageSliderProps> = ({
                     : 'border-slate-800 hover:border-slate-600 opacity-60 hover:opacity-100'
                 }`}
               >
-                <img src={imgUrl} alt={`مصغرة ${idx + 1}`} className="w-full h-full object-cover" />
+                <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
               </button>
             ))}
           </div>

@@ -1,20 +1,19 @@
 import React, { useState } from 'react';
 import { 
-  ShieldCheck, 
   CheckCircle2, 
-  ChevronLeft, 
   MessageCircle, 
-  Wrench, 
   Layers, 
   Sparkles,
   Compass,
   Images,
-  ArrowUpRight
+  Wrench
 } from 'lucide-react';
-import { SERVICES, CONTACT_INFO, ServiceItem } from '../data';
+import { SERVICES, CONTACT_INFO, ServiceItem, getLocalizedService } from '../data';
 import { PageId } from '../components/Navbar';
 import { WarrantyBadge } from '../components/WarrantyBadge';
 import { AutoServiceImageSlider } from '../components/AutoServiceImageSlider';
+import { useLanguage } from '../context/LanguageContext';
+import { translations } from '../i18n/translations';
 
 interface ServicesPageProps {
   onNavigate: (page: PageId, preselectedRequest?: string) => void;
@@ -25,16 +24,19 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
   onNavigate,
   onOpenServiceGallery
 }) => {
+  const { lang, isRtl } = useLanguage();
+  const t = translations[lang];
+
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const categories = [
-    { id: 'all', label: 'كافة الخدمات (8)' },
-    { id: 'مسابح', label: 'أغطية المسابح' },
-    { id: 'برجولات', label: 'المظلات والبرجولات' },
-    { id: 'أدراج', label: 'الأدراج الحلزونية' },
-    { id: 'أبواب', label: 'الأبواب والبوابات' },
-    { id: 'جلسات', label: 'الجلسات الخارجية' },
-    { id: 'ديكورات', label: 'الديكورات والفواصل' },
+    { id: 'all', label: t.servicesAllFilter },
+    { id: 'مسابح', label: lang === 'en' ? 'Pool Covers' : 'أغطية المسابح' },
+    { id: 'برجولات', label: lang === 'en' ? 'Canopies & Pergolas' : 'المظلات والبرجولات' },
+    { id: 'أدراج', label: lang === 'en' ? 'Spiral Stairs' : 'الأدراج الحلزونية' },
+    { id: 'أبواب', label: lang === 'en' ? 'Doors & Gates' : 'الأبواب والبوابات' },
+    { id: 'جلسات', label: lang === 'en' ? 'Outdoor Lounges' : 'الجلسات الخارجية' },
+    { id: 'ديكورات', label: lang === 'en' ? 'Screens & Partitions' : 'الديكورات والفواصل' },
   ];
 
   const filteredServices = selectedCategory === 'all'
@@ -47,13 +49,13 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
       <section className="max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-3">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-xs font-bold text-blue-400">
           <Sparkles className="w-3.5 h-3.5 text-[#84CC16]" />
-          <span>الهندسة الفولاذية المتقدمة للفلل</span>
+          <span>{t.servicesHeaderBadge}</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-          خدماتنا الهندسية الـ 8 المتخصصة
+          {t.servicesHeaderTitle}
         </h1>
         <p className="text-slate-400 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed">
-          الصور تتنقل تلقائياً لكل خدمة ويمكنك النقر على الأسهم أو الصور المصغرة للتنقل اليدوي المباشر:
+          {t.servicesHeaderDesc}
         </p>
 
         {/* Categories Bar */}
@@ -76,10 +78,11 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
 
       {/* Services List Detailed */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-        {filteredServices.map((service, index) => {
-          const serviceImages = service.images || [];
+        {filteredServices.map((rawService, index) => {
+          const service = getLocalizedService(rawService, lang === 'en');
+          const serviceImages = rawService.images || [];
           const hasImages = serviceImages.length > 0;
-          const serviceWhatsAppUrl = `https://wa.me/${CONTACT_INFO.whatsappRaw}?text=${encodeURIComponent(`مرحباً TAJ، أود الاستفسار وطلب تسعير لخدمة: "${service.title}".`)}`;
+          const serviceWhatsAppUrl = `https://wa.me/${CONTACT_INFO.whatsappRaw}?text=${encodeURIComponent(lang === 'ar' ? `مرحباً TAJ، أود الاستفسار وطلب تسعير لخدمة: "${service.title}".` : `Hello TAJ, I would like to inquire about: "${service.title}".`)}`;
 
           return (
             <div
@@ -96,26 +99,26 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                       images={serviceImages}
                       category={service.category}
                       serviceTitle={service.title}
-                      onOpenGallery={() => onOpenServiceGallery(service)}
+                      onOpenGallery={() => onOpenServiceGallery(rawService)}
                       aspectClass="aspect-[16/10]"
                       showThumbnails={true}
                     />
                   </div>
 
                   {/* Details Side (7 cols) */}
-                  <div className="lg:col-span-7 space-y-4 text-right">
+                  <div className={`lg:col-span-7 space-y-4 ${isRtl ? 'text-right' : 'text-left'}`}>
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-mono text-[#84CC16] font-bold">
-                          خدمة هندسية #{index + 1}
+                          {lang === 'ar' ? `خدمة هندسية #${index + 1}` : `Service #${index + 1}`}
                         </span>
                         <button
                           type="button"
-                          onClick={() => onOpenServiceGallery(service)}
+                          onClick={() => onOpenServiceGallery(rawService)}
                           className="px-2.5 py-1 rounded-md bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
                         >
                           <Images className="w-3.5 h-3.5 text-[#84CC16]" />
-                          <span>كامل الألبوم ({serviceImages.length} صور)</span>
+                          <span>{t.showcaseFullAlbum} ({serviceImages.length})</span>
                         </button>
                       </div>
 
@@ -142,14 +145,14 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px]">
                         <span className="text-slate-400 font-semibold flex items-center gap-1">
                           <Layers className="w-3 h-3 text-[#2563EB]" />
-                          المواد والخامات:
+                          {t.servicesMaterials}
                         </span>
                         <span className="text-slate-200">{service.specs.materials}</span>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] border-t border-slate-800/80 pt-1.5">
                         <span className="text-slate-400 font-semibold flex items-center gap-1">
                           <Wrench className="w-3 h-3 text-[#84CC16]" />
-                          المتانة:
+                          {t.servicesDurability}
                         </span>
                         <span className="text-slate-200">{service.specs.durability}</span>
                       </div>
@@ -161,15 +164,15 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                         onClick={() => onNavigate('contact', service.title)}
                         className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-[#2563EB]/25 transition-all"
                       >
-                        طلب استشارة وعرض سعر
+                        {t.servicesOrderQuote}
                       </button>
 
                       <button
-                        onClick={() => onOpenServiceGallery(service)}
+                        onClick={() => onOpenServiceGallery(rawService)}
                         className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all flex items-center gap-1.5"
                       >
                         <Images className="w-3.5 h-3.5 text-[#84CC16]" />
-                        <span>عرض كافة الصور</span>
+                        <span>{t.servicesViewAllPhotos}</span>
                       </button>
 
                       <a
@@ -179,19 +182,19 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                         className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs transition-all"
                       >
                         <MessageCircle className="w-3.5 h-3.5 fill-white" />
-                        <span>واتساب فوري</span>
+                        <span>{t.servicesInstantWhatsApp}</span>
                       </a>
                     </div>
                   </div>
                 </div>
               ) : (
-                /* Services WITHOUT photos: Strictly NO image slot or empty frame! Pure engineering layout! */
-                <div className="space-y-4 text-right">
+                /* Services WITHOUT photos */
+                <div className={`space-y-4 ${isRtl ? 'text-right' : 'text-left'}`}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                     <div>
                       <div className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#84CC16] font-bold mb-1">
                         <Compass className="w-3 h-3" />
-                        <span>تصنيع إنشائي حسب المخطط #0{index + 1}</span>
+                        <span>{lang === 'ar' ? `تصنيع إنشائي حسب المخطط #0${index + 1}` : `Custom Blueprint Fabrication #0${index + 1}`}</span>
                       </div>
                       <h2 className="text-lg sm:text-xl font-bold text-white">
                         {service.title}
@@ -203,7 +206,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                         {service.category}
                       </span>
                       <span className="px-3 py-1 rounded-full bg-[#84CC16]/10 text-[#84CC16] border border-[#84CC16]/20 text-xs font-bold">
-                        ضمان 10 سنوات
+                        {t.warrantyYearsText}
                       </span>
                     </div>
                   </div>
@@ -224,15 +227,15 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                   {/* Specs row */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-[#070B12] border border-slate-800 text-xs">
                     <div>
-                      <span className="block text-slate-400 text-[11px] mb-0.5">المواد والخامات:</span>
+                      <span className="block text-slate-400 text-[11px] mb-0.5">{t.servicesMaterials}</span>
                       <span className="font-semibold text-slate-200 text-xs">{service.specs.materials}</span>
                     </div>
                     <div>
-                      <span className="block text-slate-400 text-[11px] mb-0.5">المتانة ومقاومة الطقس:</span>
+                      <span className="block text-slate-400 text-[11px] mb-0.5">{t.servicesDurability}</span>
                       <span className="font-semibold text-slate-200 text-xs">{service.specs.durability}</span>
                     </div>
                     <div>
-                      <span className="block text-slate-400 text-[11px] mb-0.5">نطاق الاستخدام:</span>
+                      <span className="block text-slate-400 text-[11px] mb-0.5">{t.servicesApplication}</span>
                       <span className="font-semibold text-[#84CC16] text-xs">{service.specs.application}</span>
                     </div>
                   </div>
@@ -242,7 +245,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                       onClick={() => onNavigate('contact', service.title)}
                       className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-600 text-white font-bold text-xs transition-all"
                     >
-                      طلب تسعير ومخطط لهذه الخدمة
+                      {t.servicesOrderBlueprint}
                     </button>
                     <a
                       href={serviceWhatsAppUrl}
@@ -251,7 +254,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                       className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs transition-all"
                     >
                       <MessageCircle className="w-3.5 h-3.5 fill-white" />
-                      <span>استفسار واتساب</span>
+                      <span>{t.servicesInstantWhatsApp}</span>
                     </a>
                   </div>
                 </div>

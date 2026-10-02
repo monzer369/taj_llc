@@ -1,9 +1,14 @@
 @import "tailwindcss";
 
 @layer base {
-  :root {
+  :root, html[dir="rtl"] {
     --font-heading: 'Cairo', sans-serif;
     --font-body: 'IBM Plex Sans Arabic', sans-serif;
+  }
+
+  html[dir="ltr"] {
+    --font-heading: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   body {

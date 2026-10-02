@@ -1,8 +1,27 @@
 import React, { useState } from 'react';
-import { Send, CheckCircle2, AlertCircle, MessageCircle, Sparkles, Building2, MapPin, User, FileText } from 'lucide-react';
+import { 
+  Send, 
+  CheckCircle2, 
+  AlertCircle, 
+  MessageCircle, 
+  MapPin, 
+  User, 
+  Wrench, 
+  FileText, 
+  Sparkles 
+} from 'lucide-react';
+import { db } from '../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
-import { REQUEST_OPTIONS, UAE_CITIES, CONTACT_INFO } from '../data';
+import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
+import { 
+  CONTACT_INFO, 
+  UAE_CITIES_AR, 
+  UAE_CITIES_EN, 
+  REQUEST_OPTIONS_AR, 
+  REQUEST_OPTIONS_EN 
+} from '../data';
+import { useLanguage } from '../context/LanguageContext';
+import { translations } from '../i18n/translations';
 
 interface SmartContactFormProps {
   initialRequestType?: string;
@@ -13,57 +32,70 @@ export const SmartContactForm: React.FC<SmartContactFormProps> = ({
   initialRequestType,
   onSuccess,
 }) => {
+  const { lang, isRtl } = useLanguage();
+  const t = translations[lang];
+
+  const cityOptions = lang === 'en' ? UAE_CITIES_EN : UAE_CITIES_AR;
+  const requestOptions = lang === 'en' ? REQUEST_OPTIONS_EN : REQUEST_OPTIONS_AR;
+  const otherCityLabel = lang === 'en' ? 'Other City' : 'مدينة أخرى';
+  const otherInquiryLabel = lang === 'en' ? 'Other Inquiry' : 'استفسار آخر';
+
   const [name, setName] = useState('');
-  const [city, setCity] = useState('دبي');
+  const [city, setCity] = useState<string>(cityOptions[0]);
   const [customCity, setCustomCity] = useState('');
   const [isOtherCity, setIsOtherCity] = useState(false);
-  const [requestType, setRequestType] = useState<string>(
-    initialRequestType && REQUEST_OPTIONS.includes(initialRequestType as any)
-      ? initialRequestType
-      : REQUEST_OPTIONS[0]
-  );
+  const [requestType, setRequestType] = useState<string>(initialRequestType || requestOptions[0]);
   const [details, setDetails] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submittedData, setSubmittedData] = useState<{
     name: string;
     city: string;
     requestType: string;
-    details: string;
+    details?: string;
     whatsappUrl: string;
   } | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // If requestType is 'استفسار آخر', details field is strictly required
-  const isOtherRequest = requestType === 'استفسار آخر';
-  const isDetailsRequired = isOtherRequest;
+  const isDetailsRequired = requestType === otherInquiryLabel;
+
+  const handleCitySelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === otherCityLabel) {
+      setIsOtherCity(true);
+      setCity(otherCityLabel);
+    } else {
+      setIsOtherCity(false);
+      setCity(val);
+      setCustomCity('');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    // Client-side validations
     const finalName = name.trim();
-    const finalCity = isOtherCity ? customCity.trim() : city.trim();
+    const finalCity = isOtherCity ? customCity.trim() : city;
     const finalDetails = details.trim();
 
     if (!finalName || finalName.length < 2) {
-      setErrorMessage('يرجى إدخال اسم كريم (حرفان على الأقل).');
+      setErrorMessage(lang === 'ar' ? 'يرجى إدخال اسم كريم (حرفان على الأقل).' : 'Please enter your full name (at least 2 characters).');
       return;
     }
 
     if (!finalCity || finalCity.length < 2) {
-      setErrorMessage('يرجى اختيار أو كتابة المدينة داخل الإمارات.');
+      setErrorMessage(lang === 'ar' ? 'يرجى اختيار أو كتابة المدينة داخل الإمارات.' : 'Please select or enter a city in the UAE.');
       return;
     }
 
     if (!requestType) {
-      setErrorMessage('يرجى تحديد نوع الطلب المطلوب.');
+      setErrorMessage(lang === 'ar' ? 'يرجى تحديد نوع الطلب المطلوب.' : 'Please select the required service or work.');
       return;
     }
 
     if (isDetailsRequired && (!finalDetails || finalDetails.length < 3)) {
-      setErrorMessage('عند اختيار "استفسار آخر"، يرجى توضيح تفاصيل استفسارك.');
+      setErrorMessage(lang === 'ar' ? 'عند اختيار "استفسار آخر"، يرجى توضيح تفاصيل استفسارك.' : 'When selecting "Other Inquiry", please describe your requirements.');
       return;
     }
 
@@ -74,11 +106,12 @@ export const SmartContactForm: React.FC<SmartContactFormProps> = ({
       const randomSuffix = Math.random().toString(36).substring(2, 10);
       const inquiryId = `inq_${Date.now()}_${randomSuffix}`;
 
-      // 2. Prepare payload conforming to firebase-blueprint.json & firestore.rules
+      // 2. Prepare payload
       const payload: Record<string, any> = {
         name: finalName,
         city: finalCity,
         requestType: requestType,
+        language: lang,
         createdAt: serverTimestamp(),
       };
 
@@ -86,14 +119,16 @@ export const SmartContactForm: React.FC<SmartContactFormProps> = ({
         payload.details = finalDetails;
       }
 
-      // 3. Save to Firebase Cloud Firestore first
+      // 3. Save to Firebase Cloud Firestore
       const docRef = doc(db, 'inquiries', inquiryId);
       await setDoc(docRef, payload);
 
-      // 4. Construct WhatsApp Message matching user specification
-      // Format: مرحباً TAJ، الاسم: [الاسم]، المدينة: [المدينة]، نوع الطلب: [الطلب]، التفاصيل: [النص الحر]
-      const freeTextDetails = finalDetails || 'بدون تفاصيل إضافية';
-      const whatsappMessage = `مرحباً TAJ، الاسم: ${finalName}، المدينة: ${finalCity}، نوع الطلب: ${requestType}، التفاصيل: ${freeTextDetails}`;
+      // 4. Construct WhatsApp Message matching language specification
+      const freeTextDetails = finalDetails || (lang === 'ar' ? 'بدون تفاصيل إضافية' : 'No additional details');
+      const whatsappMessage = lang === 'ar'
+        ? `مرحباً TAJ، الاسم: ${finalName}، المدينة: ${finalCity}، نوع الطلب: ${requestType}، التفاصيل: ${freeTextDetails}`
+        : `Hello TAJ, Name: ${finalName}, City: ${finalCity}, Service: ${requestType}, Details: ${freeTextDetails}`;
+
       const whatsappUrl = `https://wa.me/${CONTACT_INFO.whatsappRaw}?text=${encodeURIComponent(whatsappMessage)}`;
 
       setSubmittedData({
@@ -116,11 +151,11 @@ export const SmartContactForm: React.FC<SmartContactFormProps> = ({
       }
     } catch (err: unknown) {
       console.error('Error saving inquiry:', err);
-      setErrorMessage('حدث خطأ أثناء حفظ الطلب في قاعدة البيانات. يمكنك التواصل معنا مباشرة عبر واتساب.');
+      setErrorMessage(t.formErrorPrefix);
       try {
         handleFirestoreError(err, OperationType.CREATE, 'inquiries');
       } catch (e) {
-        // Logged conforming to guidelines
+        // Handled
       }
     } finally {
       setIsSubmitting(false);
@@ -129,17 +164,17 @@ export const SmartContactForm: React.FC<SmartContactFormProps> = ({
 
   const handleReset = () => {
     setName('');
-    setCity('دبي');
+    setCity(cityOptions[0]);
     setCustomCity('');
     setIsOtherCity(false);
-    setRequestType(REQUEST_OPTIONS[0]);
+    setRequestType(requestOptions[0]);
     setDetails('');
     setSubmittedData(null);
     setErrorMessage(null);
   };
 
   return (
-    <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-xl relative overflow-hidden">
+    <div className={`bg-[#0B101D] border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-xl relative overflow-hidden ${isRtl ? 'text-right' : 'text-left'}`}>
       {/* Decorative ambient glow */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-[#2563EB]/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
       <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#84CC16]/10 rounded-full blur-3xl pointer-events-none -ml-16 -mb-16"></div>
@@ -151,28 +186,28 @@ export const SmartContactForm: React.FC<SmartContactFormProps> = ({
           </div>
 
           <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
-            تم تسجيل طلبك بنجاح في النظام!
+            {t.formSuccessTitle}
           </h3>
           <p className="text-slate-300 text-xs sm:text-sm max-w-lg mx-auto mb-5 leading-relaxed">
-            تم حفظ تفاصيل مشروعك في قاعدة بيانات TAJ، وجارٍ استكمال المحادثة الهندسية المباشرة معك عبر واتساب.
+            {t.formSuccessDesc}
           </p>
 
-          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 max-w-md mx-auto mb-6 text-right text-xs space-y-2">
+          <div className={`bg-slate-900/80 border border-slate-800 rounded-xl p-4 max-w-md mx-auto mb-6 ${isRtl ? 'text-right' : 'text-left'} text-xs space-y-2`}>
             <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
-              <span className="text-slate-400">الاسم الكريم:</span>
+              <span className="text-slate-400">{t.formNameLabel}:</span>
               <span className="text-white font-semibold">{submittedData.name}</span>
             </div>
             <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
-              <span className="text-slate-400">المدينة:</span>
+              <span className="text-slate-400">{t.formCityLabel}:</span>
               <span className="text-white font-semibold">{submittedData.city}</span>
             </div>
             <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
-              <span className="text-slate-400">نوع الطلب:</span>
+              <span className="text-slate-400">{t.formRequestTypeLabel}:</span>
               <span className="text-[#84CC16] font-bold">{submittedData.requestType}</span>
             </div>
             {submittedData.details && (
               <div className="pt-1">
-                <span className="text-slate-400 block mb-1">التفاصيل:</span>
+                <span className="text-slate-400 block mb-1">{t.formDetailsLabel}:</span>
                 <p className="text-slate-200 bg-slate-950 p-2 rounded-lg border border-slate-800/60 text-xs">
                   {submittedData.details}
                 </p>
@@ -188,14 +223,14 @@ export const SmartContactForm: React.FC<SmartContactFormProps> = ({
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs sm:text-sm shadow-md transition-all duration-200"
             >
               <MessageCircle className="w-4 h-4 fill-white" />
-              <span>متابعة المحادثة عبر واتساب الآن</span>
+              <span>{t.formContinueWhatsApp}</span>
             </a>
 
             <button
               onClick={handleReset}
               className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-all duration-200"
             >
-              تقديم طلب جديد
+              {t.formSubmitAnother}
             </button>
           </div>
         </div>
@@ -204,180 +239,145 @@ export const SmartContactForm: React.FC<SmartContactFormProps> = ({
           <div className="border-b border-slate-800 pb-4">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#2563EB]/15 border border-[#2563EB]/30 text-xs font-bold text-blue-400 mb-1.5">
               <Sparkles className="w-3.5 h-3.5 text-[#84CC16]" />
-              <span>نموذج الاستشارة الهندسية المباشرة</span>
+              <span>{t.formBadge}</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-bold text-white">
-              ابدأ مشروعك الفاخر مع <span className="text-[#2563EB]">TAJ</span>
+              {t.formTitlePart1} <span className="text-[#2563EB]">TAJ</span>
             </h3>
             <p className="text-slate-400 text-xs mt-0.5">
-              املأ الحقول التالية لنقوم بحفظ طلبك والتواصل الفوري معك عبر واتساب لدراسة المخططات.
+              {t.formSubtitle}
             </p>
           </div>
 
           {errorMessage && (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-950/50 border border-red-800/80 text-red-300 text-xs md:text-sm">
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-950/60 border border-red-800/80 text-red-300 text-xs">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Field 1: الاسم */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Field 1: Name */}
             <div>
-              <label htmlFor="client-name" className="block text-xs font-bold text-slate-300 mb-2 flex items-center gap-1.5">
+              <label htmlFor="client-name" className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-[#84CC16]" />
-                <span>الاسم الكريم</span>
+                <span>{t.formNameLabel}</span>
                 <span className="text-red-400">*</span>
               </label>
               <input
                 id="client-name"
                 type="text"
                 required
-                maxLength={100}
-                placeholder="أدخل اسمك أو اسم العائلة"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm transition-all"
+                placeholder={t.formNamePlaceholder}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] text-slate-100 placeholder:text-slate-500 text-xs transition-colors outline-none"
               />
             </div>
 
-            {/* Field 2: المدينة */}
+            {/* Field 2: City */}
             <div>
-              <label htmlFor="client-city" className="block text-xs font-bold text-slate-300 mb-2 flex items-center gap-1.5">
+              <label htmlFor="client-city" className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-[#84CC16]" />
-                <span>المدينة (الإمارات)</span>
+                <span>{t.formCityLabel}</span>
                 <span className="text-red-400">*</span>
               </label>
-              <div className="space-y-2">
-                <select
-                  id="client-city"
-                  value={isOtherCity ? 'other' : city}
-                  onChange={(e) => {
-                    if (e.target.value === 'other') {
-                      setIsOtherCity(true);
-                    } else {
-                      setIsOtherCity(false);
-                      setCity(e.target.value);
-                    }
-                  }}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700/80 text-white focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm transition-all"
-                >
-                  {UAE_CITIES.map((c) => (
-                    <option key={c} value={c} className="bg-slate-900 text-white">
-                      {c}
-                    </option>
-                  ))}
-                  <option value="other" className="bg-slate-900 text-white">
-                    منطقة / مدينة أخرى داخل الإمارات
+              <select
+                id="client-city"
+                value={isOtherCity ? otherCityLabel : city}
+                onChange={handleCitySelectChange}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] text-slate-100 text-xs transition-colors outline-none cursor-pointer"
+              >
+                {cityOptions.map((c) => (
+                  <option key={c} value={c} className="bg-slate-900 text-slate-100">
+                    {c}
                   </option>
-                </select>
+                ))}
+                <option value={otherCityLabel} className="bg-slate-900 text-slate-100">
+                  {otherCityLabel}...
+                </option>
+              </select>
 
-                {isOtherCity && (
+              {isOtherCity && (
+                <div className="mt-2">
                   <input
                     type="text"
                     required
-                    maxLength={100}
-                    placeholder="اكتب اسم المدينة أو المنطقة (مثلاً: جبل علي، مصفح...)"
                     value={customCity}
                     onChange={(e) => setCustomCity(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-[#2563EB] text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                    placeholder={t.formOtherCityPlaceholder}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 focus:border-[#84CC16] text-slate-100 placeholder:text-slate-500 text-xs outline-none"
                   />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Field 3: نوع الطلب (12 options) */}
-          <div>
-            <label htmlFor="client-request-type" className="block text-xs font-bold text-slate-300 mb-2 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-[#84CC16]" />
-              <span>نوع الطلب أو الخدمة الهندسية المطلوبة</span>
-              <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <select
-                id="client-request-type"
-                value={requestType}
-                onChange={(e) => setRequestType(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-xl bg-slate-900 border border-slate-700/80 text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm transition-all"
-              >
-                {REQUEST_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt} className="bg-slate-900 text-white py-1">
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1.5">
-              اختر العمل الهندسي الذي ترغب بتنفيذه في الفيلا أو المشروع السكني.
-            </p>
-          </div>
-
-          {/* Field 4: التفاصيل (Optional if specific option, Required if 'استفسار آخر') */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label htmlFor="client-details" className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-[#84CC16]" />
-                <span>التفاصيل والمواصفات</span>
-                {isDetailsRequired ? (
-                  <span className="text-red-400 text-xs">(إلزامي لاستفسار آخر) *</span>
-                ) : (
-                  <span className="text-slate-400 text-[11px] font-normal">(اختياري)</span>
-                )}
-              </label>
-
-              {isDetailsRequired && (
-                <span className="text-[11px] text-[#84CC16] font-semibold bg-[#84CC16]/10 px-2 py-0.5 rounded">
-                  يرجى ذكر طبيعة طلبك
-                </span>
+                </div>
               )}
             </div>
-
-            <textarea
-              id="client-details"
-              rows={4}
-              maxLength={2000}
-              required={isDetailsRequired}
-              placeholder={
-                isDetailsRequired
-                  ? 'يرجى كتابة تفاصيل استفسارك أو نوع العمل الخاص الذي ترغب بتنفيذه...'
-                  : 'يمكنك كتابة المقاسات التقريبية، ملاحظات التصميم، أو أي اشتراطات معمارية خاصة (اختياري)...'
-              }
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
-              className={`w-full px-4 py-3 rounded-xl bg-slate-900 border ${
-                isDetailsRequired ? 'border-[#2563EB]/80 focus:ring-[#2563EB]' : 'border-slate-700/80 focus:ring-[#2563EB]'
-              } text-white placeholder-slate-500 focus:outline-none focus:ring-2 text-sm transition-all resize-y`}
-            ></textarea>
           </div>
 
-          {/* Security & Action Note */}
-          <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between flex-wrap gap-2">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#84CC16]"></span>
-              يتم حفظ طلبك أولاً في قاعدة البيانات السحابية ثم تحويلك مباشرة للواتساب.
-            </span>
-            <span className="text-slate-500 font-mono">لا نطلب بيانات حساسة أو بريداً إلكترونياً</span>
+          {/* Field 3: Request Type */}
+          <div>
+            <label htmlFor="request-type" className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <Wrench className="w-3.5 h-3.5 text-[#84CC16]" />
+              <span>{t.formRequestTypeLabel}</span>
+              <span className="text-red-400">*</span>
+            </label>
+            <select
+              id="request-type"
+              value={requestType}
+              onChange={(e) => setRequestType(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] text-slate-100 text-xs transition-colors outline-none cursor-pointer"
+            >
+              {requestOptions.map((opt) => (
+                <option key={opt} value={opt} className="bg-slate-900 text-slate-100">
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Field 4: Details */}
+          <div>
+            <label htmlFor="client-details" className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-[#84CC16]" />
+                <span>{t.formDetailsLabel}</span>
+              </span>
+              {isDetailsRequired && (
+                <span className="text-[11px] text-amber-400 font-normal">
+                  {lang === 'ar' ? 'مطلوب لهذا الخيار *' : 'Required for this option *'}
+                </span>
+              )}
+            </label>
+            <textarea
+              id="client-details"
+              rows={3}
+              required={isDetailsRequired}
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder={t.formDetailsPlaceholder}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] text-slate-100 placeholder:text-slate-500 text-xs transition-colors outline-none resize-none"
+            />
           </div>
 
           {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-xl bg-[#2563EB] hover:bg-blue-600 active:scale-[0.99] text-white font-bold text-base shadow-xl shadow-[#2563EB]/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            {isSubmitting ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                <span>جارٍ حفظ الطلب وفتح واتساب...</span>
-              </span>
-            ) : (
-              <>
-                <Send className="w-5 h-5" />
-                <span>إرسال الطلب ومتابعة المحادثة عبر واتساب</span>
-              </>
-            )}
-          </button>
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3 px-6 rounded-xl bg-[#2563EB] hover:bg-blue-600 active:scale-[0.99] disabled:opacity-50 text-white font-bold text-xs sm:text-sm shadow-md shadow-[#2563EB]/25 flex items-center justify-center gap-2 transition-all duration-200"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>{t.formSubmittingBtn}</span>
+                </>
+              ) : (
+                <>
+                  <Send className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
+                  <span>{t.formSubmitBtn}</span>
+                </>
+              )}
+            </button>
+          </div>
         </form>
       )}
     </div>

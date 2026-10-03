@@ -23,7 +23,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (e) {
       // In case localStorage is blocked
     }
-    return 'ar';
+    // Default language: English
+    return 'en';
   });
 
   const setLang = (newLang: Language) => {

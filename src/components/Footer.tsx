@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, MessageCircle, MapPin, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, ShieldCheck, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
 import { IMAGES, CONTACT_INFO, SERVICES } from '../data';
 import { PageId } from './Navbar';
 import { useLanguage } from '../context/LanguageContext';
@@ -14,6 +14,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   const t = translations[lang];
 
   const ForwardArrow = isRtl ? ChevronLeft : ChevronRight;
+
+  const emails = [
+    { address: 'info@tajsteel.llc', labelAr: 'استفسارات عامة', labelEn: 'General Inquiries' },
+    { address: 'sales@tajsteel.llc', labelAr: 'المبيعات', labelEn: 'Sales' },
+    { address: 'support@tajsteel.llc', labelAr: 'الدعم الفني', labelEn: 'Support' },
+    { address: 'media@tajsteel.llc', labelAr: 'الإعلام', labelEn: 'Media' },
+  ];
 
   return (
     <footer className="bg-[#070B12] border-t border-slate-800 text-slate-400 relative overflow-hidden">
@@ -154,6 +161,30 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   {lang === 'ar' ? 'محادثة واتساب مباشرة' : 'Direct WhatsApp Chat'}
                 </a>
               </div>
+            </div>
+
+            {/* Emails Section */}
+            <div className="pt-2 space-y-2">
+              <span className="text-[11px] text-slate-400 block mb-2 font-semibold">
+                {lang === 'ar' ? 'راسلنا عبر البريد:' : 'Email Us:'}
+              </span>
+              {emails.map((email) => (
+                <a
+                  key={email.address}
+                  href={`mailto:${email.address}`}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-[#2563EB] transition-colors group"
+                >
+                  <Mail className="w-4 h-4 text-[#2563EB] shrink-0 group-hover:text-[#84CC16] transition-colors" />
+                  <div className="flex flex-col">
+                    <span className="text-xs text-slate-200 font-mono" dir="ltr">
+                      {email.address}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {lang === 'ar' ? email.labelAr : email.labelEn}
+                    </span>
+                  </div>
+                </a>
+              ))}
             </div>
 
             {/* Social links */}
